@@ -1,5 +1,4 @@
-/* deploy-marker: season-card 2026-04-16-r32 */
-/** Répertoire du JS (HACS : …/community/season-card/dist ; manuel : …/www/season-card) pour résoudre JSON / SVG / PNG sans YAML. */
+/** Base URL path for bundled assets (from this module). */
 const __seasonCardDir = (() => {
   try {
     return new URL(".", import.meta.url).pathname.replace(/\/+$/, "");
@@ -44,7 +43,7 @@ class SeasonCard extends HTMLElement {
       high_temp: 25,
       /** Afficher ☂️ si pluie probable d’ici 24 h (prévisions horaires HA). */
       weather_rain_umbrella: true,
-      /** Forcer l’affichage du ☂️ (debug / mise en page), sans appeler les prévisions. Ignoré si `weather_rain_umbrella: false`. */
+      /** Forcer l’affichage du ☂️ (démo / mise en page), sans appeler les prévisions. Ignoré si `weather_rain_umbrella: false`. */
       weather_rain_umbrella_force: false,
       /** Si force actif : `aria-label` du bloc pluie (détail accessibilité). Chaîne vide = libellé par défaut. */
       weather_rain_umbrella_force_hint: null,
@@ -120,7 +119,7 @@ class SeasonCard extends HTMLElement {
   }
 
   /**
-   * Température ressentie simplifiée (demande carte) :
+   * Température ressentie (approximation) :
    * Teq = Tair - 1{Tair<15} * V^0.5/2 + 1{Tair>25} * 1{HR>40} * (HR-40) * 0.15
    * (V = vent km/h)
    */
@@ -168,7 +167,6 @@ class SeasonCard extends HTMLElement {
   }
 
   _defaultTemperatureScale() {
-    /** Jalons identiques a l'ancienne echelle -10..42°C (une couleur par T) ; n = (T+10)/60 ; noir etendu a 50°C. */
     return {
       zmin: -10,
       zmax: 50,
@@ -254,9 +252,7 @@ class SeasonCard extends HTMLElement {
     return 0.2126 * r + 0.7152 * g + 0.0722 * b;
   }
 
-  /**
-   * Résout `var(--primary-text-color)` en `rgb(...)` pour teinte des motifs (exception season-card vs ha-color.md).
-   */
+  /** Résout `var(--primary-text-color)` en `rgb(...)` pour la teinte des motifs. */
   _resolvedPrimaryTextRgbForMotif() {
     if (!this.isConnected || !this.ownerDocument?.body) return "rgb(224, 224, 224)";
     try {
@@ -473,7 +469,7 @@ class SeasonCard extends HTMLElement {
     return ["rainy", "pouring", "lightning-rainy", "hail", "snowy-rainy"].includes(String(state || ""));
   }
 
-  /** Prévisions horaires encore présentes dans les attributs (intégrations anciennes). */
+  /** Prévisions horaires fournies via les attributs de l’entité météo. */
   _legacyHourlyForecastFromAttributes(weather) {
     const fc = weather?.attributes?.forecast;
     if (!Array.isArray(fc) || fc.length < 3) return null;

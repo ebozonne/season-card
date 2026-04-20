@@ -1,6 +1,6 @@
 {
   "name": "temperature-dashboard-colorscale",
-  "description": "Echelle temperature : zmin/zmax = plage °C. Chaque stop [n, couleur] utilise n = (T - zmin) / (zmax - zmin) pour une temperature T fixe (jalons physiques). Extension chaude : noir a 50°C au lieu de 42°C ; le degrade brun→noir couvre 35°C–50°C.",
+  "description": "Echelle temperature °C : zmin, zmax ; chaque stop [n, couleur] avec n = (T - zmin) / (zmax - zmin) pour le jalon T.",
   "zmin": -10,
   "zmax": 50,
   "colorscale": [

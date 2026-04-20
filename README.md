@@ -115,9 +115,9 @@ Si `weather_rain_umbrella_force: true`, le texte à côté du ☂️ et l’`ari
 
 ---
 
-## Développement
+## Maintenance du dépôt
 
-Modifier **`dist/season-card.js`** (source unique) ; tester sur une instance (déploiement MCP, copie vers `www/`, etc.) ; commit / tag pour HACS depuis ce dépôt. Réglages YAML avancés (hors README) : **`docs/ha-season.md`** dans le workspace principal.
+Le code source de la carte est **`dist/season-card.js`**. Après modification : vérifier sur une instance, puis publier (commit / tag / release) pour HACS. Les clés YAML avancées sont décrites dans **`docs/ha-season.md`** du workspace principal (pas dans ce README).
 
 ---
 
