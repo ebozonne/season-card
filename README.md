@@ -74,17 +74,6 @@ Après modification du YAML : vérifier la configuration Home Assistant, puis re
 
 ---
 
-## Fichiers du dépôt (aperçu)
-
-| Chemin | Rôle |
-|--------|------|
-| **`dist/season-card.js`** | Code de la carte. |
-| **`dist/temperature-colorscale.json`** | Échelle de couleur température. |
-| **`dist/season-icons/`** | SVG météo (monochrome `currentColor`, légers effets d’animation) + PNG motifs saison. |
-| **`docs/readme/*.jpg`** | Captures pour ce README. |
-
----
-
 ## Configuration standard (usage)
 
 Les trois lignes **attendues** pour une utilisation « carte complète » (curseur + météo) :
@@ -96,9 +85,7 @@ weather_entity: weather.forecast_maison   # remplacer par votre weather.*
 ```
 
 - **`type`** et **`entity`** : requis côté Lovelace / carte (`entity` = votre `input_select`).
-- **`weather_entity`** : option **utilisateur** au sens où vous choisissez **quelle** entité `weather.*` alimente le bandeau ; l’exemple ci-dessus n’est qu’une valeur d’instance.
-
-Les autres réglages (ambiance, seuils, chemins d’assets, etc.) ont des **défauts dans le code** et relèvent du **développement** : ils sont décrits dans la note projet **`docs/ha-season.md`** du workspace (sans dupliquer ce README).
+- **`weather_entity`** : vous choisissez **quelle** entité `weather.*` alimente le bandeau ; l’exemple ci-dessus n’est qu’une valeur d’instance.
 
 ---
 
