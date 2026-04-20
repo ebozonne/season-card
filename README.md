@@ -115,12 +115,6 @@ Si `weather_rain_umbrella_force: true`, le texte à côté du ☂️ et l’`ari
 
 ---
 
-## Maintenance du dépôt
-
-Le code source de la carte est **`dist/season-card.js`**. Après modification : vérifier sur une instance, puis publier (commit / tag / release) pour HACS. Les clés YAML avancées sont décrites dans **`docs/ha-season.md`** du workspace principal (pas dans ce README).
-
----
-
 ## Licence
 
 Voir le fichier [`LICENSE`](LICENSE) (MIT).
