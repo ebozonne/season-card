@@ -111,8 +111,6 @@ Les autres réglages (ambiance, seuils, chemins d’assets, etc.) ont des **déf
 | `external_temp` | *(absent)* | `32` | Force une température **°C** (motifs, ambiance, ressenti, **T** affichée) sans modifier la météo réelle. |
 | `weather_rain_umbrella_force` | `false` | `true` | Affiche le bloc **☂️** comme s’il y avait une alerte, **sans** appeler les prévisions. |
 
-Si `weather_rain_umbrella_force: true`, le texte à côté du ☂️ et l’`aria-label` peuvent se régler avec **`weather_rain_umbrella_force_lead`** et **`weather_rain_umbrella_force_hint`** (voir `docs/ha-season.md`).
-
 ---
 
 ## Licence
