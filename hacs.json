@@ -1,6 +1,6 @@
 {
   "name": "Season Card",
   "type": "plugin",
-  "filename": "dist/season-card.js",
+  "filename": "season-card.js",
   "render_readme": true
 }
