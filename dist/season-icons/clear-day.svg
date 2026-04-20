@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 56 48">
+  <style>
+    .sun { fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; }
+    .rays { transform-origin: 28px 24px; animation: spin 10s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+  <g class="rays">
+    <line class="sun" x1="28" y1="7" x2="28" y2="12"/><line class="sun" x1="28" y1="36" x2="28" y2="41"/>
+    <line class="sun" x1="11" y1="24" x2="16" y2="24"/><line class="sun" x1="40" y1="24" x2="45" y2="24"/>
+    <line class="sun" x1="16" y1="12" x2="20" y2="16"/><line class="sun" x1="36" y1="32" x2="40" y2="36"/>
+    <line class="sun" x1="16" y1="36" x2="20" y2="32"/><line class="sun" x1="36" y1="16" x2="40" y2="12"/>
+  </g>
+  <circle class="sun" cx="28" cy="24" r="8"/>
+</svg>

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 56 48">
+  <style>
+    .cloud { fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+    .c1 { animation: drift 6s ease-in-out infinite; }
+    .c2 { animation: drift 4s ease-in-out infinite reverse; }
+    @keyframes drift { 0%,100% { transform: translateX(0); } 50% { transform: translateX(2px); } }
+  </style>
+  <g class="c1">
+    <path class="cloud" d="M10 31h28a8 8 0 0 0 0-16 10 10 0 0 0-18-2A7 7 0 0 0 10 31z"/>
+  </g>
+  <g class="c2">
+    <path class="cloud" d="M8 33h24a7 7 0 0 0 0-14 8 8 0 0 0-15-2A6 6 0 0 0 8 33z"/>
+  </g>
+</svg>

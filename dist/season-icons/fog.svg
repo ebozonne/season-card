@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 56 48">
+  <style>
+    .f { fill:none; stroke:currentColor; stroke-width:2.2; stroke-linecap:round; stroke-dasharray: 10 8; animation: drift 3s linear infinite; }
+    @keyframes drift { to { stroke-dashoffset: -18; } }
+  </style>
+  <line class="f" x1="8" y1="18" x2="48" y2="18"/>
+  <line class="f" x1="6" y1="24" x2="44" y2="24" style="animation-duration:4s"/>
+  <line class="f" x1="10" y1="30" x2="50" y2="30" style="animation-duration:5s"/>
+</svg>

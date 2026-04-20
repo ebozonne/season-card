@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 56 48">
+  <style>
+    .moon { fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+    .g { animation: sway 6s ease-in-out infinite; transform-origin: 28px 24px; }
+    @keyframes sway { 50% { transform: rotate(10deg); } }
+  </style>
+  <g class="g">
+    <path class="moon" d="M32 10a12 12 0 1 0 10 20A11 11 0 1 1 32 10z"/>
+  </g>
+  <path class="moon" d="M10 11l1.8 2.5L15 15l-3.2 1.5L10 19l-1.8-2.5L5 15l3.2-1.5z"/>
+  <path class="moon" d="M42 6l1.3 1.8L45.5 9l-2.2 1.2L42 12l-1.3-1.8L38.5 9l2.2-1.2z"/>
+</svg>

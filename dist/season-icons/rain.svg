@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 56 48">
+  <style>
+    .s { fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+    .d { stroke-dasharray: 1 6; animation: fall 1.2s linear infinite; }
+    @keyframes fall { to { stroke-dashoffset: -20; } }
+  </style>
+  <path class="s" d="M10 28h28a8 8 0 0 0 0-16 10 10 0 0 0-18-2A7 7 0 0 0 10 28z"/>
+  <line class="s d" x1="20" y1="30" x2="20" y2="40"/>
+  <line class="s d" x1="28" y1="30" x2="28" y2="40" style="animation-delay:.2s"/>
+  <line class="s d" x1="36" y1="30" x2="36" y2="40" style="animation-delay:.4s"/>
+</svg>

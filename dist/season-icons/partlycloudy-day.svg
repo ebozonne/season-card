@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 56 48">
+  <style>
+    .s, .c { fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+    .spin { transform-origin: 18px 18px; animation: spin 12s linear infinite; }
+    .drift { animation: drift 5s ease-in-out infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes drift { 50% { transform: translateX(2px); } }
+  </style>
+  <g class="spin">
+    <circle class="s" cx="18" cy="18" r="6"/>
+    <line class="s" x1="18" y1="7" x2="18" y2="10"/><line class="s" x1="18" y1="26" x2="18" y2="29"/>
+    <line class="s" x1="7" y1="18" x2="10" y2="18"/><line class="s" x1="26" y1="18" x2="29" y2="18"/>
+  </g>
+  <g class="drift">
+    <path class="c" d="M14 34h28a8 8 0 0 0 0-16 10 10 0 0 0-18-2A7 7 0 0 0 14 34z"/>
+  </g>
+</svg>
