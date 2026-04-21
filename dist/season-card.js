@@ -113,18 +113,45 @@ class SeasonCard extends HTMLElement {
     return s != null && String(s).trim() !== "" ? s : null;
   }
 
-  _formatSceneTime(value) {
+  /**
+   * Heure HH:mm dans le fuseau configuré dans Home Assistant (`config.time_zone`), pas celui du navigateur
+   * (consultation à distance : lever/coucher doivent rester ceux du lieu de l’instance).
+   * @param {any} hass
+   * @param {Date} d instant valide
+   */
+  _formatInHaTimeZone(hass, d) {
+    const tz = hass?.config?.time_zone;
+    const lang = hass?.locale?.language ?? hass?.language ?? undefined;
+    if (typeof tz === "string" && tz.trim()) {
+      try {
+        return new Intl.DateTimeFormat(lang || "en-GB", {
+          timeZone: tz.trim(),
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        }).format(d);
+      } catch (_e) {
+        /* fuseau IANA inconnu ou non supporté par le moteur JS */
+      }
+    }
+    const hh = String(d.getHours()).padStart(2, "0");
+    const mm = String(d.getMinutes()).padStart(2, "0");
+    return `${hh}:${mm}`;
+  }
+
+  /** @param {any} hass pour `config.time_zone` (obligatoire si ISO UTC depuis sun.sun). */
+  _formatSceneTime(value, hass) {
     if (value == null) return "--";
     const s = String(value).trim();
     if (!s) return "--";
-    const m = s.match(/(\d{1,2})\s*h\s*(\d{2})/i) || s.match(/(\d{1,2}):(\d{2})/);
-    if (m) return `${m[1].padStart(2, "0")}:${m[2]}`;
+    // ISO / RFC datetimes first: HA stores sun.next_rising / next_setting in UTC (+00:00 or Z).
+    // A naive (\d{1,2}):(\d{2}) match would grab that UTC wall clock from the string before any conversion.
     const d = new Date(s);
     if (!Number.isNaN(d.getTime())) {
-      const hh = String(d.getHours()).padStart(2, "0");
-      const mm = String(d.getMinutes()).padStart(2, "0");
-      return `${hh}:${mm}`;
+      return this._formatInHaTimeZone(hass, d);
     }
+    const m = s.match(/(\d{1,2})\s*h\s*(\d{2})/i) || s.match(/(\d{1,2}):(\d{2})/);
+    if (m) return `${m[1].padStart(2, "0")}:${m[2]}`;
     return s;
   }
 
@@ -628,8 +655,7 @@ class SeasonCard extends HTMLElement {
     if (firstHitMs == null || !Number.isFinite(firstHitMs)) return "";
     const d = new Date(firstHitMs);
     if (Number.isNaN(d.getTime())) return "";
-    const lang = hass?.locale?.language ?? hass?.language ?? undefined;
-    return d.toLocaleTimeString(lang, { hour: "numeric", minute: "2-digit" });
+    return this._formatInHaTimeZone(hass, d);
   }
 
   /**
@@ -712,8 +738,8 @@ class SeasonCard extends HTMLElement {
     this._weatherHumidity.textContent = humidity == null ? "RH --" : `RH ${humidity}%`;
     this._weatherWind.textContent =
       windSpeed == null || windSpeed === "" ? "--" : `${String(windSpeed).replace(/\s*km\/h\s*$/i, "").trim()} km/h`;
-    this._weatherSunrise.textContent = this._formatSceneTime(this._sunPhaseRaw(hass, sunriseEntityId, "next_rising"));
-    this._weatherSunset.textContent = this._formatSceneTime(this._sunPhaseRaw(hass, sunsetEntityId, "next_setting"));
+    this._weatherSunrise.textContent = this._formatSceneTime(this._sunPhaseRaw(hass, sunriseEntityId, "next_rising"), hass);
+    this._weatherSunset.textContent = this._formatSceneTime(this._sunPhaseRaw(hass, sunsetEntityId, "next_setting"), hass);
 
     const windKmh = this._windSpeedKmh(weather);
     const teq = this._feltTemperature(tEffective, humidity, windKmh);
