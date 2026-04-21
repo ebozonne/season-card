@@ -87,6 +87,7 @@ weather_entity: weather.forecast_maison   # remplacer par votre weather.*
 
 - **`type`** et **`entity`** : requis côté Lovelace / carte (`entity` = votre `input_select`).
 - **`weather_entity`** : vous choisissez **quelle** entité `weather.*` alimente le bandeau ; l’exemple ci-dessus n’est qu’une valeur d’instance.
+- **Lever / coucher** : par défaut **`sun.sun`** (attributs `next_rising` / `next_setting`). Pour une autre entité, la carte affiche son **`state`** ; surcharge possible avec `weather_sunrise_entity` et `weather_sunset_entity`.
 
 ---
 

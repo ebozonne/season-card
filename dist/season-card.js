@@ -33,8 +33,9 @@ class SeasonCard extends HTMLElement {
       weather_label: true,
       weather_color: "var(--primary-text-color)",
       weather_icon_path: `${__seasonCardDir}/season-icons`,
-      weather_sunrise_entity: "sensor.sun_next_rising_short",
-      weather_sunset_entity: "sensor.sun_next_setting_short",
+      /** Lever / coucher : défaut = entité core `sun.sun` (attributs `next_rising` / `next_setting`). */
+      weather_sunrise_entity: "sun.sun",
+      weather_sunset_entity: "sun.sun",
       weather_ambiance: "gradient",
       weather_temperature_colorscale_path: `${__seasonCardDir}/temperature-colorscale.json`,
       weather_motif_winter_path: `${__seasonCardDir}/season-icons/winter.png`,
@@ -90,6 +91,26 @@ class SeasonCard extends HTMLElement {
     });
     if (!el.hasAttribute("tabindex")) el.setAttribute("tabindex", "0");
     if (!el.hasAttribute("role")) el.setAttribute("role", "button");
+  }
+
+  /** Entité soleil standard Home Assistant (heures dans les attributs, pas dans `state`). */
+  _isSunEntity(entityId) {
+    return String(entityId || "").toLowerCase() === "sun.sun";
+  }
+
+  /**
+   * Valeur brute affichée pour lever/coucher : `sun.sun` → attribut ; sinon → `state` (capteurs, templates, etc.).
+   * @param {"next_rising"|"next_setting"} sunAttr
+   */
+  _sunPhaseRaw(hass, entityId, sunAttr) {
+    const st = hass?.states?.[entityId];
+    if (!st) return null;
+    if (this._isSunEntity(entityId)) {
+      const raw = st.attributes?.[sunAttr];
+      return raw != null && String(raw).trim() !== "" ? raw : null;
+    }
+    const s = st.state;
+    return s != null && String(s).trim() !== "" ? s : null;
   }
 
   _formatSceneTime(value) {
@@ -674,8 +695,10 @@ class SeasonCard extends HTMLElement {
       return;
     }
 
-    const sunriseState = hass.states?.[this._config.weather_sunrise_entity];
-    const sunsetState = hass.states?.[this._config.weather_sunset_entity];
+    const sunriseEntityId = this._config.weather_sunrise_entity;
+    const sunsetEntityId = this._config.weather_sunset_entity;
+    const sunriseState = hass.states?.[sunriseEntityId];
+    const sunsetState = hass.states?.[sunsetEntityId];
     const humidity = weather.attributes?.humidity;
     const windSpeed = weather.attributes?.wind_speed;
     const tEffective = this._effectiveOutdoorTempC(weather);
@@ -689,8 +712,8 @@ class SeasonCard extends HTMLElement {
     this._weatherHumidity.textContent = humidity == null ? "RH --" : `RH ${humidity}%`;
     this._weatherWind.textContent =
       windSpeed == null || windSpeed === "" ? "--" : `${String(windSpeed).replace(/\s*km\/h\s*$/i, "").trim()} km/h`;
-    this._weatherSunrise.textContent = this._formatSceneTime(sunriseState?.state);
-    this._weatherSunset.textContent = this._formatSceneTime(sunsetState?.state);
+    this._weatherSunrise.textContent = this._formatSceneTime(this._sunPhaseRaw(hass, sunriseEntityId, "next_rising"));
+    this._weatherSunset.textContent = this._formatSceneTime(this._sunPhaseRaw(hass, sunsetEntityId, "next_setting"));
 
     const windKmh = this._windSpeedKmh(weather);
     const teq = this._feltTemperature(tEffective, humidity, windKmh);
