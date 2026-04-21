@@ -1,8 +1,8 @@
 ![HACS](https://img.shields.io/badge/HACS-Custom-orange.svg)
 
-# Season Card — carte 4 saisons + météo compacte (Lovelace)
+# Season Card — carte saisons + météo compacte (Lovelace)
 
-Carte Lovelace pour Home Assistant : **curseur de saison** (`input_select`) + **bandeau météo** (température ressentie, icône condition, pluie 24 h, lever/coucher du soleil), avec **ambiance** (dégradé + motifs) liée à la température extérieure.
+Carte Lovelace pour Home Assistant : **mode sélecteur** (`input_select`) ou **mode capteur** (`sensor.season`), avec **bandeau météo** (température ressentie, icône condition, pluie 24 h, lever/coucher du soleil) et **ambiance** (dégradé + motifs) liée à la température extérieure.
 
 **Dépôt** : [https://github.com/ebozonne/season-card](https://github.com/ebozonne/season-card)
 
@@ -16,7 +16,8 @@ Carte Lovelace pour Home Assistant : **curseur de saison** (`input_select`) + **
 - **Fond coloré + motifs** (PNG) — teinte liée à la température ; adaptation **clair / sombre** au thème.
 - **Parapluie** — affichage si risque de pluie dans les **24 h** (prévisions horaires HA).
 - **Soleil** — heures de lever et de coucher.
-- **Curseur de saison** — pilotage d’un `input_select` à trois options (automations, modes, etc.).
+- **Mode sélecteur (`input_select`)** — rail pilotable (usage chauffage / automations).
+- **Mode capteur (`sensor.season`)** — rail non réglable, piloté par l’état de Home Assistant.
 
 ![Thèmes clair et sombre](docs/readme/QuatreSaisons_themes.jpg)
 
@@ -111,6 +112,25 @@ weather_entity: weather.forecast_maison
 
 ---
 
+## Mode capteur `sensor.season` (curseur automatique)
+
+Utilisez ce mode quand la saison vient d’un capteur (ex. `sensor.season`) et **pas** d’un helper `input_select`.
+
+```yaml
+type: custom:season-card
+entity: sensor.season
+weather_entity: weather.forecast_maison
+```
+
+Comportement de ce mode :
+
+- rail **non interactif** (le curseur suit l’état du capteur),
+- 4 positions fixes : `winter` (gauche), `spring`, `summer`, `autumn` (droite),
+- couleur du rail basée sur la saison : `winter` et `summer` colorées, `spring` / `autumn` grisées,
+- libellé actif localisé avec emoji (ex. ❄️ / 🍃 / ☀️ / 🍂).
+
+---
+
 ## Options démo (hors usage courant)
 
 À utiliser **ponctuellement** pour tester l’UI, puis retirer ou remettre aux valeurs par défaut.
@@ -119,6 +139,7 @@ weather_entity: weather.forecast_maison
 |-----------|--------|---------|------|
 | `external_temp` | *(absent)* | `32` | Force une température **°C** (motifs, ambiance, ressenti, **T** affichée) sans modifier la météo réelle. |
 | `weather_rain_umbrella_force` | `false` | `true` | Affiche le bloc **☂️** comme s’il y avait une alerte, **sans** appeler les prévisions. |
+| `season_force` | *(absent)* | `autumn` | **Mode `sensor.season` uniquement** : force l’affichage d’une saison (`winter`, `spring`, `summer`, `autumn`) pour test visuel. |
 
 ---
 

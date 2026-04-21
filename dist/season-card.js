@@ -9,6 +9,8 @@ const __seasonCardDir = (() => {
 class SeasonCard extends HTMLElement {
   static iconCache = new Map();
   static temperatureScaleCache = new Map();
+  static sensorSeasonKeys = ["winter", "spring", "summer", "autumn"];
+  static sensorSeasonIcons = { winter: "❄️", spring: "🍃", summer: "☀️", autumn: "🍂" };
 
   constructor() {
     super();
@@ -49,9 +51,13 @@ class SeasonCard extends HTMLElement {
       weather_rain_umbrella_force_hint: null,
       /** Si force actif : heure affichée à côté du ☂️ (ex. `13:00` ou `1:00 PM`). Défaut `13:00` si absent ou vide. */
       weather_rain_umbrella_force_lead: "13:00",
+      /** Mode sensor.season: force l'affichage d'une saison (winter|spring|summer|autumn) pour test visuel. */
+      season_force: null,
       ...config,
     };
     this._weatherOnlyMode = !this._config.entity;
+    this._sensorSeasonMode = false;
+    this._sensorSeasonLabel = "";
     this._built = false;
     this._rainUmbrellaCacheKey = "";
     this._rainUmbrellaCached = undefined;
@@ -422,14 +428,74 @@ class SeasonCard extends HTMLElement {
     return String(option || "").toUpperCase();
   }
 
+  _normalizeSeasonState(value) {
+    return String(value || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .trim()
+      .toLowerCase();
+  }
+
+  _seasonIndexFromState(value) {
+    const s = this._normalizeSeasonState(value);
+    if (!s) return 1;
+    if (s === "winter" || s.includes("hiver")) return 0;
+    if (s === "summer" || s.includes("ete")) return 2;
+    if (s === "spring" || s.includes("printemps")) return 1;
+    if (s === "autumn" || s === "fall" || s.includes("automne")) return 3;
+    return 1;
+  }
+
+  _coerceSeasonKey(value) {
+    const s = this._normalizeSeasonState(value);
+    if (s === "winter" || s.includes("hiver")) return "winter";
+    if (s === "summer" || s.includes("ete")) return "summer";
+    if (s === "spring" || s.includes("printemps")) return "spring";
+    if (s === "autumn" || s === "fall" || s.includes("automne")) return "autumn";
+    return null;
+  }
+
+  _sensorSeasonKeys() {
+    return SeasonCard.sensorSeasonKeys;
+  }
+
+  _isInputSelectEntity(entityId) {
+    return String(entityId || "").startsWith("input_select.");
+  }
+
+  _localizeSeasonKey(hass, key) {
+    const k = String(key || "").toLowerCase();
+    const candidates = [`component.season.state.${k}`, `component.sensor.state.season.${k}`, `state.default.${k}`];
+    for (const c of candidates) {
+      const t = hass?.localize?.(c);
+      if (t && t !== c) return t;
+    }
+    const fallback = { winter: "Winter", spring: "Spring", summer: "Summer", autumn: "Autumn" };
+    return fallback[k] || k;
+  }
+
+  _sensorSeasonOptions(hass) {
+    return this._sensorSeasonKeys().map((k) => `${SeasonCard.sensorSeasonIcons[k]} ${this._localizeSeasonKey(hass, k)}`);
+  }
+
   _railColor(option) {
     const key = this._optionKey(option);
     if (key.includes("WINTER") || key.includes("HIVER")) return "var(--accent-color)";
+    if (key.includes("SPRING") || key.includes("PRINTEMPS")) return "var(--disabled-color, var(--secondary-text-color))";
+    if (key.includes("AUTUMN") || key.includes("AUTOMN") || key.includes("FALL") || key.includes("AUTOMNE")) {
+      return "var(--disabled-color, var(--secondary-text-color))";
+    }
     if (key.includes("MID") || key.includes("SEASON") || key.includes("MI-SAISON")) {
       return "var(--disabled-color, var(--secondary-text-color))";
     }
     if (key.includes("SUMMER") || key.includes("ETE") || key.includes("ÉTÉ")) return "var(--primary-color)";
     return "var(--primary-color)";
+  }
+
+  _sensorRailColorForIndex(index) {
+    if (index === 0) return "var(--primary-color)";
+    if (index === 2) return "var(--accent-color)";
+    return "var(--disabled-color, var(--secondary-text-color))";
   }
 
   _weatherIconForCondition(condition) {
@@ -668,7 +734,7 @@ class SeasonCard extends HTMLElement {
     }
   }
 
-  _build(options, hass, weatherOnly = false) {
+  _build(options, hass, weatherOnly = false, sensorMode = false) {
     this._built = true;
     this.style.containerType = "inline-size";
     const gid = this._sceneGradientId;
@@ -868,7 +934,13 @@ class SeasonCard extends HTMLElement {
       this._bindMoreInfo(el, el.getAttribute("data-entity"));
     });
 
-    if (weatherOnly) return;
+    if (weatherOnly || sensorMode) {
+      if (sensorMode && this._track) {
+        this._track.style.cursor = "default";
+        this._track.style.touchAction = "auto";
+      }
+      return;
+    }
 
     const indexFromClientX = (clientX) => {
       const rect = this._track.getBoundingClientRect();
@@ -928,10 +1000,12 @@ class SeasonCard extends HTMLElement {
     if (!this._thumb || !this._rail || !this._thumbLabel) return;
     const activeIndex = this._previewIndex ?? this._currentIndex;
     const activeOption = options[activeIndex] || options[0] || "";
-    this._rail.style.background = this._railColor(activeOption);
+    this._rail.style.background = this._sensorSeasonMode
+      ? this._sensorRailColorForIndex(activeIndex)
+      : this._railColor(activeOption);
     this._thumb.style.transform = `translateX(${activeIndex * 100}%)`;
     this._thumb.style.transition = this._dragging ? "none" : "transform 180ms ease";
-    this._thumbLabel.textContent = activeOption;
+    this._thumbLabel.textContent = this._sensorSeasonMode && this._sensorSeasonLabel ? this._sensorSeasonLabel : activeOption;
     const onRail = "var(--text-primary-on-primary-color, rgb(255, 255, 255))";
     this._labels.forEach((el, idx) => {
       const clip = el.closest(".season-slider-label-clip");
@@ -960,16 +1034,31 @@ class SeasonCard extends HTMLElement {
   set hass(hass) {
     this._hass = hass;
     if (this._config?.entity) {
-      const entity = hass.states?.[this._config.entity];
+      const entityId = this._config.entity;
+      const entity = hass.states?.[entityId];
       if (!entity) return;
       const options = entity.attributes?.options || [];
-      if (!options.length) return;
+      if (this._isInputSelectEntity(entityId) && options.length) {
+        this._sensorSeasonMode = false;
+        if (!this._built) this._build(options, hass);
+        const idx = options.indexOf(entity.state);
+        this._currentIndex = idx >= 0 ? idx : 0;
+        if (!this._dragging) this._previewIndex = null;
+        this._render(options);
+        this._renderWeather(hass);
+        return;
+      }
 
-      if (!this._built) this._build(options, hass);
-      const idx = options.indexOf(entity.state);
-      this._currentIndex = idx >= 0 ? idx : 0;
-      if (!this._dragging) this._previewIndex = null;
-      this._render(options);
+      this._sensorSeasonMode = true;
+      const forcedKey = this._coerceSeasonKey(this._config?.season_force);
+      const realKey = this._coerceSeasonKey(entity.state);
+      const key = forcedKey || realKey || "spring";
+      this._sensorSeasonLabel = `${SeasonCard.sensorSeasonIcons[key] || "🍃"} ${this._localizeSeasonKey(hass, key || "spring")}`;
+      const sensorOptions = this._sensorSeasonOptions(hass);
+      if (!this._built) this._build(sensorOptions, hass, false, true);
+      this._currentIndex = this._seasonIndexFromState(key);
+      this._previewIndex = null;
+      this._render(sensorOptions);
       this._renderWeather(hass);
       return;
     }
