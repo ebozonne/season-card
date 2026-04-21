@@ -89,6 +89,28 @@ weather_entity: weather.forecast_maison   # remplacer par votre weather.*
 
 ---
 
+## Mode slider seul (sans météo)
+
+Si vous voulez uniquement le sélecteur saison :
+
+```yaml
+type: custom:season-card
+entity: input_select.season
+```
+
+---
+
+## Mode météo seule (sans sélecteur)
+
+Si vous voulez uniquement le bandeau météo, omettez `entity` et ne gardez que :
+
+```yaml
+type: custom:season-card
+weather_entity: weather.forecast_maison
+```
+
+---
+
 ## Options démo (hors usage courant)
 
 À utiliser **ponctuellement** pour tester l’UI, puis retirer ou remettre aux valeurs par défaut.

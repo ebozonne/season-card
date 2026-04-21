@@ -25,7 +25,7 @@ class SeasonCard extends HTMLElement {
   }
 
   setConfig(config) {
-    if (!config.entity) throw new Error("entity requis");
+    if (!config.entity && !config.weather_entity) throw new Error("entity ou weather_entity requis");
     this._config = {
       weather_entity: null,
       weather_label: true,
@@ -51,6 +51,7 @@ class SeasonCard extends HTMLElement {
       weather_rain_umbrella_force_lead: "13:00",
       ...config,
     };
+    this._weatherOnlyMode = !this._config.entity;
     this._built = false;
     this._rainUmbrellaCacheKey = "";
     this._rainUmbrellaCached = undefined;
@@ -667,7 +668,7 @@ class SeasonCard extends HTMLElement {
     }
   }
 
-  _build(options, hass) {
+  _build(options, hass, weatherOnly = false) {
     this._built = true;
     this.style.containerType = "inline-size";
     const gid = this._sceneGradientId;
@@ -746,7 +747,7 @@ class SeasonCard extends HTMLElement {
           transition: background 0.35s ease, opacity 0.35s ease;
         "></div>
         <div style="position: relative; z-index: 2; display: flex; flex-direction: column; gap: 0;">
-          <div style="padding: 6px 12px 6px;">
+          <div style="padding: 6px 12px 6px; ${weatherOnly ? "display:none;" : ""}">
             <div id="track" style="
               position: relative;
               width: 100%;
@@ -773,8 +774,8 @@ class SeasonCard extends HTMLElement {
               </div>
             </div>
           </div>
-          <div style="height: 1px; margin: 0 12px; background: color-mix(in srgb, var(--divider-color) 55%, transparent);"></div>
-          <div id="weather" style="display: none; padding: 0 10px 0;">
+          <div style="height: 1px; margin: 0 12px; background: color-mix(in srgb, var(--divider-color) 55%, transparent); ${weatherOnly ? "display:none;" : ""}"></div>
+          <div id="weather" style="display: ${weatherOnly ? "block" : "none"}; padding: ${weatherOnly ? "4px 10px 0" : "0 10px 0"};">
             <div id="weather-scene-wrap" style="position: relative; width: 100%; border-radius: 0; overflow: visible; border: none; background: transparent;">
               <div id="weather-horizon-stack" style="position: relative; width: 100%;">
                 <svg id="weather-scene" viewBox="0 0 360 44" width="100%" style="display: block; height: auto; aspect-ratio: 360 / 44; margin: 0; margin-bottom: -10px; padding: 0; position: relative; z-index: 1;" preserveAspectRatio="xMidYMid meet">
@@ -867,6 +868,8 @@ class SeasonCard extends HTMLElement {
       this._bindMoreInfo(el, el.getAttribute("data-entity"));
     });
 
+    if (weatherOnly) return;
+
     const indexFromClientX = (clientX) => {
       const rect = this._track.getBoundingClientRect();
       const relX = Math.min(Math.max(clientX - rect.left, 0), rect.width - 1);
@@ -956,16 +959,22 @@ class SeasonCard extends HTMLElement {
 
   set hass(hass) {
     this._hass = hass;
-    const entity = hass.states?.[this._config?.entity];
-    if (!entity) return;
-    const options = entity.attributes?.options || [];
-    if (!options.length) return;
+    if (this._config?.entity) {
+      const entity = hass.states?.[this._config.entity];
+      if (!entity) return;
+      const options = entity.attributes?.options || [];
+      if (!options.length) return;
 
-    if (!this._built) this._build(options, hass);
-    const idx = options.indexOf(entity.state);
-    this._currentIndex = idx >= 0 ? idx : 0;
-    if (!this._dragging) this._previewIndex = null;
-    this._render(options);
+      if (!this._built) this._build(options, hass);
+      const idx = options.indexOf(entity.state);
+      this._currentIndex = idx >= 0 ? idx : 0;
+      if (!this._dragging) this._previewIndex = null;
+      this._render(options);
+      this._renderWeather(hass);
+      return;
+    }
+
+    if (!this._built) this._build([], hass, true);
     this._renderWeather(hass);
   }
 }
