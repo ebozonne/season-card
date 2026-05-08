@@ -6,6 +6,10 @@ const __seasonCardDir = (() => {
     return "/local/community/season-card/dist";
   }
 })();
+
+/** Teinte de repli pour les motifs si `--primary-text-color` n'est pas résolu (gris clair lisible en thème sombre). */
+const MOTIF_FALLBACK_TINT = "rgb(224, 224, 224)";
+
 class SeasonCard extends HTMLElement {
   static iconCache = new Map();
   static temperatureScaleCache = new Map();
@@ -30,17 +34,19 @@ class SeasonCard extends HTMLElement {
     if (!config.entity && !config.weather_entity) throw new Error("entity ou weather_entity requis");
     this._config = {
       weather_entity: null,
-      weather_label: true,
       weather_color: "var(--primary-text-color)",
-      weather_icon_path: `${__seasonCardDir}/season-icons`,
+      /** Pack d'icônes météo : "season" (défaut, locales), "meteocons-mono" (Meteocons monochrome), "meteocons-fill" (Meteocons colorées). */
+      weather_icon_set: "season",
+      /** Surcharge directe du dossier d'icônes (utilisé seulement si l'utilisateur le précise). */
+      weather_icon_path: null,
       /** Lever / coucher : défaut = entité core `sun.sun` (attributs `next_rising` / `next_setting`). */
       weather_sunrise_entity: "sun.sun",
       weather_sunset_entity: "sun.sun",
       weather_ambiance: "gradient",
       weather_temperature_colorscale_path: `${__seasonCardDir}/temperature-colorscale.json`,
-      weather_motif_winter_path: `${__seasonCardDir}/season-icons/winter.png`,
-      weather_motif_midseason_path: `${__seasonCardDir}/season-icons/mid-season.png`,
-      weather_motif_summer_path: `${__seasonCardDir}/season-icons/summer.png`,
+      weather_motif_winter_path: `${__seasonCardDir}/season-motifs/winter.png`,
+      weather_motif_midseason_path: `${__seasonCardDir}/season-motifs/mid-season.png`,
+      weather_motif_summer_path: `${__seasonCardDir}/season-motifs/summer.png`,
       weather_pattern_opacity: 0.2,
       low_temp: 12,
       high_temp: 25,
@@ -52,10 +58,21 @@ class SeasonCard extends HTMLElement {
       weather_rain_umbrella_force_hint: null,
       /** Si force actif : heure affichée à côté du ☂️ (ex. `13:00` ou `1:00 PM`). Défaut `13:00` si absent ou vide. */
       weather_rain_umbrella_force_lead: "13:00",
+      /** Debug visuel: force la condition météo affichée (ex. "rainy") sans dépendre de l'état réel. */
+      weather_debug_force_condition: null,
       /** Mode sensor.season: force l'affichage d'une saison (winter|spring|summer|autumn) pour test visuel. */
       season_force: null,
       ...config,
     };
+    if (this._config.weather_icon_path == null || this._config.weather_icon_path === "") {
+      const iconSetMap = {
+        season: `${__seasonCardDir}/season-icons`,
+        "meteocons-mono": `${__seasonCardDir}/meteocons-mono-icons`,
+        "meteocons-fill": `${__seasonCardDir}/meteocons-fill-icons`,
+      };
+      const key = String(this._config.weather_icon_set || "season").trim();
+      this._config.weather_icon_path = iconSetMap[key] || iconSetMap.season;
+    }
     this._weatherOnlyMode = !this._config.entity;
     this._sensorSeasonMode = false;
     this._sensorSeasonLabel = "";
@@ -155,7 +172,7 @@ class SeasonCard extends HTMLElement {
     return s;
   }
 
-  _updateWeatherScene(weather, sunriseState, sunsetState, windSpeed) {
+  _updateWeatherScene() {
     const svg = this.querySelector("#weather-scene");
     if (!svg) return;
     svg.style.color = this._config.weather_color || "var(--primary-text-color)";
@@ -195,7 +212,6 @@ class SeasonCard extends HTMLElement {
 
   _patternDisplayOpacity() {
     let o = Number(this._config.weather_pattern_opacity);
-    if (!Number.isFinite(o)) o = Number(this._config.weather_motif_opacity);
     if (!Number.isFinite(o)) o = 0.2;
     return Math.min(1, Math.max(0, o));
   }
@@ -209,16 +225,6 @@ class SeasonCard extends HTMLElement {
     }
     const t = parseFloat(weather?.attributes?.temperature);
     return Number.isFinite(t) ? t : null;
-  }
-
-  _localizeWeatherState(hass, state) {
-    if (!hass?.localize || !state) return state;
-    const keys = [`component.weather.state.${state}`, `state.weather.${state}`];
-    for (const k of keys) {
-      const t = hass.localize(k);
-      if (t && t !== k) return t;
-    }
-    return state;
   }
 
   _defaultTemperatureScale() {
@@ -309,7 +315,7 @@ class SeasonCard extends HTMLElement {
 
   /** Résout `var(--primary-text-color)` en `rgb(...)` pour la teinte des motifs. */
   _resolvedPrimaryTextRgbForMotif() {
-    if (!this.isConnected || !this.ownerDocument?.body) return "rgb(224, 224, 224)";
+    if (!this.isConnected || !this.ownerDocument?.body) return MOTIF_FALLBACK_TINT;
     try {
       const el = this.ownerDocument.createElement("span");
       el.style.cssText = "position:fixed;left:-9999px;top:0;color:var(--primary-text-color)";
@@ -320,7 +326,7 @@ class SeasonCard extends HTMLElement {
     } catch (_e) {
       /* ignore */
     }
-    return "rgb(224, 224, 224)";
+    return MOTIF_FALLBACK_TINT;
   }
 
   /** Évite noir / gris très foncé sur les masques d’ambiance (motifs invisibles en dark). */
@@ -546,6 +552,26 @@ class SeasonCard extends HTMLElement {
     return "var(--disabled-color, var(--secondary-text-color))";
   }
 
+  /**
+   * Vrai si le soleil est sous l'horizon (`sun.sun` elevation < 0, fallback state `below_horizon`).
+   * Utilisé uniquement pour corriger l'icône météo de nuit.
+   */
+  _isNightFromSun(hass) {
+    const sun = hass?.states?.["sun.sun"];
+    if (!sun) return false;
+    const elev = Number(sun.attributes?.elevation);
+    if (Number.isFinite(elev)) return elev < 0;
+    return String(sun.state || "").toLowerCase() === "below_horizon";
+  }
+
+  /** Remappe `sunny` / `partlycloudy` vers leurs équivalents de nuit si `sun.sun` indique la nuit (`clear-night`, `partlycloudy-night`). */
+  _iconConditionWithNightOverride(hass, condition) {
+    const c = String(condition || "").toLowerCase();
+    if (c !== "sunny" && c !== "partlycloudy") return condition;
+    if (!this._isNightFromSun(hass)) return condition;
+    return c === "sunny" ? "clear-night" : "partlycloudy-night";
+  }
+
   _weatherIconForCondition(condition) {
     const map = {
       "clear-night": "clear-night.svg",
@@ -556,6 +582,7 @@ class SeasonCard extends HTMLElement {
       lightning: "lightning.svg",
       "lightning-rainy": "lightning-rain.svg",
       partlycloudy: "partlycloudy-day.svg",
+      "partlycloudy-night": "partlycloudy-night.svg",
       pouring: "pouring.svg",
       rainy: "rain.svg",
       snowy: "snow.svg",
@@ -579,7 +606,7 @@ class SeasonCard extends HTMLElement {
     return svg;
   }
 
-  /** Météo déjà « pluvie » (parapluie même sans prévision horaire). */
+  /** Météo déjà « pluvieuse » (parapluie même sans prévision horaire). */
   _weatherStateIsRainy(state) {
     return ["rainy", "pouring", "lightning-rainy", "hail", "snowy-rainy"].includes(String(state || ""));
   }
@@ -723,11 +750,11 @@ class SeasonCard extends HTMLElement {
 
     const sunriseEntityId = this._config.weather_sunrise_entity;
     const sunsetEntityId = this._config.weather_sunset_entity;
-    const sunriseState = hass.states?.[sunriseEntityId];
-    const sunsetState = hass.states?.[sunsetEntityId];
     const humidity = weather.attributes?.humidity;
     const windSpeed = weather.attributes?.wind_speed;
     const tEffective = this._effectiveOutdoorTempC(weather);
+    const forcedCondition = String(this._config.weather_debug_force_condition || "").trim();
+    const displayCondition = forcedCondition || weather.state;
 
     this._weather.style.display = "block";
 
@@ -747,13 +774,14 @@ class SeasonCard extends HTMLElement {
       this._weatherFeels.textContent = teq == null || Number.isNaN(teq) ? "--" : `${teq.toFixed(1)}°C`;
     }
 
-    await this._updateAmbiance(weather);
-    this._updateWeatherScene(weather, sunriseState, sunsetState, windSpeed);
+    await this._updateAmbiance({ ...weather, state: displayCondition });
+    this._updateWeatherScene();
 
     const slot = this.querySelector("#weather-condition-slot");
     if (!slot) return;
     try {
-      const svg = await this._loadWeatherIconSvg(weather.state);
+      const iconCondition = this._iconConditionWithNightOverride(hass, displayCondition);
+      const svg = await this._loadWeatherIconSvg(iconCondition);
       slot.innerHTML = svg;
       const svgEl = slot.querySelector("svg");
       if (svgEl) {
@@ -773,13 +801,31 @@ class SeasonCard extends HTMLElement {
 
     const rainWrap = this.querySelector("#weather-rain-wrap");
     const rainLead = this.querySelector("#weather-rain-lead");
+    const skyRow = this.querySelector("#weather-sky-row");
     if (rainWrap && rainLead) {
-      const hint = await this._computeRainUmbrellaHint(hass, this._config.weather_entity, weather.state, weather);
+      const hint = await this._computeRainUmbrellaHint(hass, this._config.weather_entity, displayCondition, weather);
       rainWrap.style.display = hint.show ? "inline-flex" : "none";
       rainWrap.setAttribute("aria-hidden", hint.show ? "false" : "true");
       rainWrap.setAttribute("aria-label", hint.show ? hint.ariaLabel : "Risque de pluie à 24 h");
       rainWrap.removeAttribute("title");
       rainLead.textContent = hint.show && hint.leadText ? hint.leadText : "";
+      // Layout: grid 3 cols only when rain block is visible (Android stability with rainy + "--").
+      // Otherwise fall back to centered flex so feels + icon stay grouped at the center.
+      if (skyRow) {
+        if (hint.show) {
+          skyRow.style.display = "grid";
+          skyRow.style.gridTemplateColumns = "minmax(0, 1fr) auto minmax(0, 1fr)";
+          skyRow.style.justifyContent = "";
+          skyRow.style.gap = "";
+          skyRow.style.columnGap = "clamp(8px, 2.2vw, 16px)";
+        } else {
+          skyRow.style.display = "flex";
+          skyRow.style.gridTemplateColumns = "";
+          skyRow.style.justifyContent = "center";
+          skyRow.style.gap = "clamp(8px, 2.2vw, 16px)";
+          skyRow.style.columnGap = "";
+        }
+      }
     }
   }
 
@@ -795,6 +841,7 @@ class SeasonCard extends HTMLElement {
         padding: 0;
         overflow: hidden;
         position: relative;
+        isolation: isolate;
         border-radius: ${br};
         background: var(--card-background-color, var(--ha-card-background, var(--secondary-background-color)));
         box-shadow: var(--ha-card-box-shadow, none);
@@ -808,6 +855,8 @@ class SeasonCard extends HTMLElement {
           width: clamp(88px, 24%, 170px);
           pointer-events: none;
           z-index: 0;
+          contain: paint;
+          transform: translateZ(0);
           --motif-tint: rgb(150,170,200);
         ">
           <span id="motif-winter" style="
@@ -892,8 +941,8 @@ class SeasonCard extends HTMLElement {
           <div style="height: 1px; margin: 0 12px; background: color-mix(in srgb, var(--divider-color) 55%, transparent); ${weatherOnly ? "display:none;" : ""}"></div>
           <div id="weather" style="display: ${weatherOnly ? "block" : "none"}; padding: ${weatherOnly ? "4px 10px 0" : "0 10px 0"};">
             <div id="weather-scene-wrap" style="position: relative; width: 100%; border-radius: 0; overflow: visible; border: none; background: transparent;">
-              <div id="weather-horizon-stack" style="position: relative; width: 100%;">
-                <svg id="weather-scene" viewBox="0 0 360 44" width="100%" style="display: block; height: auto; aspect-ratio: 360 / 44; margin: 0; margin-bottom: -10px; padding: 0; position: relative; z-index: 1;" preserveAspectRatio="xMidYMid meet">
+              <div id="weather-horizon-stack" style="position: relative; width: 100%; isolation: isolate;">
+                <svg id="weather-scene" viewBox="0 0 360 44" width="100%" style="display: block; height: auto; aspect-ratio: 360 / 44; margin: 0; margin-bottom: -10px; padding: 0; position: relative; z-index: 1; transform: translateZ(0);" preserveAspectRatio="xMidYMid meet">
                   <defs>
                     <linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stop-color="white" stop-opacity="0.14"/>
@@ -908,26 +957,27 @@ class SeasonCard extends HTMLElement {
                   <polygon points="334,3 352,3 343,16" fill="currentColor" fill-opacity="0.55" aria-hidden="true"/>
                 </svg>
                 <div id="weather-sky-row" style="
-                  display: flex;
+                  display: grid;
+                  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
                   align-items: center;
-                  justify-content: center;
-                  gap: clamp(8px, 2.2vw, 16px);
+                  column-gap: clamp(8px, 2.2vw, 16px);
                   min-height: 48px;
                   margin-top: -55px;
                   position: relative;
                   z-index: 2;
+                  transform: translateZ(0);
                   line-height: 0;
                   --weather-icon-h: 66px;
                   pointer-events: none;
                 ">
-                  <span id="weather-feels-wrap" class="wc-metric" data-entity="${we}" title="Température ressentie" style="display: inline-flex; align-items: center; gap: 5px; line-height: 1; white-space: nowrap; color: var(--primary-text-color); pointer-events: auto; transform: translateY(-5px);">
+                  <span id="weather-feels-wrap" class="wc-metric" data-entity="${we}" title="Température ressentie" style="display: inline-flex; align-items: center; justify-self: end; gap: 5px; line-height: 1; white-space: nowrap; color: var(--primary-text-color); pointer-events: auto; transform: translateY(-5px);">
                     <span aria-hidden="true" style="display: inline-block; font-size: calc(var(--weather-icon-h) * 0.22); line-height: 1; opacity: 0.92; filter: grayscale(1) saturate(0); -webkit-filter: grayscale(1) saturate(0);">🌡️</span>
                     <span id="weather-feels" style="font-size: calc(var(--weather-icon-h) * 0.3); font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; color: var(--primary-text-color);">--</span>
                   </span>
-                  <span id="weather-icon-cluster" style="display: inline-flex; align-items: center; justify-content: center; gap: clamp(2px, 0.9vw, 8px); flex: 0 0 auto; line-height: 0; transform: translateY(-15px);">
-                    <span id="weather-condition-slot" style="display: flex; align-items: center; justify-content: center; line-height: 0; pointer-events: auto;"></span>
+                  <span id="weather-icon-cluster" style="display: inline-flex; align-items: center; justify-content: center; justify-self: center; gap: clamp(2px, 0.9vw, 8px); line-height: 0; position: relative; z-index: 5; transform: translateY(-15px) translateZ(0);">
+                    <span id="weather-condition-slot" style="display: flex; align-items: center; justify-content: center; line-height: 0; pointer-events: auto; position: relative; z-index: 6; transform: translateZ(0);"></span>
                   </span>
-                  <span id="weather-rain-wrap" class="wc-metric" data-entity="${we}" aria-label="Risque de pluie à 24 h" aria-hidden="true" style="display: none; align-items: center; gap: 5px; line-height: 1; white-space: nowrap; color: var(--primary-text-color); pointer-events: auto; transform: translateY(-5px);">
+                  <span id="weather-rain-wrap" class="wc-metric" data-entity="${we}" aria-label="Risque de pluie à 24 h" aria-hidden="true" style="display: none; align-items: center; justify-self: start; min-width: 5ch; gap: 5px; line-height: 1; white-space: nowrap; color: var(--primary-text-color); pointer-events: auto; transform: translateY(-5px);">
                     <span id="weather-rain-hint" aria-hidden="true" style="display: inline-block; font-size: calc(var(--weather-icon-h) * 0.22); line-height: 1; opacity: 0.88; filter: grayscale(0.9); -webkit-filter: grayscale(0.9);">☂️</span>
                     <span id="weather-rain-lead" style="font-size: calc(var(--weather-icon-h) * 0.3); font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; color: var(--primary-text-color);"></span>
                   </span>
@@ -970,7 +1020,6 @@ class SeasonCard extends HTMLElement {
     this._thumbLabel = this.querySelector("#thumb-label");
     this._labels = Array.from(this.querySelectorAll("#labels span[data-option]"));
     this._weather = this.querySelector("#weather");
-    this._weatherText = this.querySelector("#weather-text");
     this._weatherTemp = this.querySelector("#weather-temp");
     this._weatherHumidity = this.querySelector("#weather-humidity");
     this._weatherWind = this.querySelector("#weather-wind");

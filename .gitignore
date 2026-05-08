@@ -3,3 +3,4 @@ Thumbs.db
 *.log
 .env
 _ha_write_payload.json
+_tools/
