@@ -1,46 +1,48 @@
+**English** · [Français](README.fr.md)
+
 ![HACS](https://img.shields.io/badge/HACS-Custom-orange.svg)
 
-# Season Card — carte saisons + météo compacte (Lovelace)
+# Season Card — seasons + compact weather card (Lovelace)
 
 > [!NOTE]
-> Pourquoi ce n'est pas une carte météo de plus…  
-> C'est avant tout un sélecteur unique de **MODE** (pour activer ou désactiver le mode chauffage, climatisation, etc.) — soit [manuel](#a-usage-en-sélecteur-manuel-de-mode), soit [automatique](#b-usage-en-mode-automatique) si vous utilisez l'intégration native **Season** de Home Assistant.
+> Why this isn't yet another weather card…  
+> First and foremost it's a single **MODE** selector (to enable or disable heating, AC, etc.) — either [manual](#a-usage-as-manual-mode-selector) or [automatic](#b-usage-in-automatic-mode) if you use Home Assistant's native **Season** integration.
 
-Carte Lovelace pour Home Assistant : **mode sélecteur** (`input_select`) ou **mode capteur** (`sensor.season`), avec **bandeau météo** (température ressentie, icône condition, pluie 24 h, lever/coucher du soleil) et **ambiance** (dégradé + motifs) liée à la température extérieure.
+A Lovelace card for Home Assistant: **selector mode** (`input_select`) or **sensor mode** (`sensor.season`), with a **weather strip** (feels-like temperature, condition icon, 24 h rainfall, sunrise/sunset) and **ambiance** (gradient + patterns) tied to the outside temperature.
 
-**Dépôt** : [https://github.com/ebozonne/season-card](https://github.com/ebozonne/season-card)
-
----
-
-## Aperçu
-
-![Fonctionnalités](docs/readme/QuatreSaisons_features.jpg)
-
-- **Température ressentie** — approximation simple (vent et humidité).
-- **Fond coloré + motifs** (PNG) — teinte liée à la température ; adaptation **clair / sombre** au thème.
-- **Parapluie** — affichage si risque de pluie dans les **24 h** (prévisions horaires HA).
-- **Soleil** — heures de lever et de coucher.
-- **Mode sélecteur (`input_select`)** — rail pilotable (usage chauffage / automations).
-- **Mode capteur (`sensor.season`)** — rail non réglable, piloté par l’état de Home Assistant.
-
-![Thèmes clair et sombre](docs/readme/QuatreSaisons_themes.jpg)
-
-Pour la carte **avec météo**, la configuration **standard** comporte **trois** lignes YAML : `type`, `entity`, `weather_entity`. Cette dernière reste **votre** entité (`weather.*`) — l’exemple `weather.forecast_maison` est seulement celui d’une instance de référence.
-
-Sans `weather_entity`, le bandeau météo reste masqué (le curseur saison fonctionne seul). Les prévisions pour le **☂️** dépendent de l’entité météo (`weather.get_forecasts` ou équivalent) ; sinon le bloc pluie peut rester vide.
-
-> [!IMPORTANT]
-> Le domaine **`weather`** n’est pas un « paquet à installer » pour la carte : c’est le type d’entité que vous pointez dans **`weather_entity`**.
+**Repository**: [https://github.com/ebozonne/season-card](https://github.com/ebozonne/season-card)
 
 ---
 
-## (A) USAGE en sélecteur manuel de MODE
+## Overview
+
+![Features](docs/readme/QuatreSaisons_features_EN.jpg)
+
+- **Feels-like temperature** — simple approximation (wind and humidity).
+- **Colored background + patterns** (PNG) — tint linked to temperature; **light / dark** theme adaptation.
+- **Umbrella** — shown if there is a risk of rain within the next **24 h** (HA hourly forecasts).
+- **Sun** — sunrise and sunset times.
+- **Selector mode (`input_select`)** — interactive rail (heating / automation use).
+- **Sensor mode (`sensor.season`)** — non-adjustable rail, driven by Home Assistant's state.
+
+![Light and dark themes](docs/readme/QuatreSaisons_themes.jpg)
+
+For the card **with weather**, the **standard** configuration takes **three** YAML lines: `type`, `entity`, `weather_entity`. The latter is **your** entity (`weather.*`) — the example `weather.forecast_maison` is just from a reference instance.
+
+Without `weather_entity`, the weather strip stays hidden (the season slider works on its own). Forecasts for the **☂️** depend on the weather entity (`weather.get_forecasts` or equivalent); otherwise the rain block may stay empty.
 
 > [!IMPORTANT]
-> Prérequis : helper **`input_select`** avec **exactement les options** que vous utiliserez partout (automations, scripts, etc.)
+> The **`weather`** domain is not a "package to install" for the card: it's the entity type you point to in **`weather_entity`**.
+
+---
+
+## (A) USAGE as manual MODE selector
+
+> [!IMPORTANT]
+> Prerequisite: an **`input_select`** helper with **exactly the options** you'll use everywhere (automations, scripts, etc.)
 
 > [!TIP]
-> Exemple : `input_select.season` — nom d’entité **`season`**, nom affiché **SEASON**, icône **`mdi:sun-snowflake-variant`** :
+> Example: `input_select.season` — entity name **`season`**, display name **SEASON**, icon **`mdi:sun-snowflake-variant`**:
 
 ```yaml
 input_select:
@@ -52,105 +54,105 @@ input_select:
       - "🍂 MID-SEASON"
       - "☀️ SUMMER"
 ```
-### Configuration du mode A
+### Mode A configuration
 
-La carte affiche les **libellés tels qu’ils sont définis** dans le helper (ordre YAML = positions gauche → droite sur le rail). Les couleurs du rail s’appuient sur des mots-clés dans le texte de l’option (par ex. `WINTER`, `MID` / mi-saison, `SUMMER` / été). La météo est optionnelle.
+The card displays **labels exactly as defined** in the helper (YAML order = positions left → right on the rail). Rail colors rely on keywords in the option text (e.g. `WINTER`, `MID` / mid-season, `SUMMER`). Weather is optional.
 
 ```yaml
 type: custom:season-card
 entity: input_select.season
-weather_entity: weather.forecast_maison   # [OPTION] remplacer par votre weather.*
+weather_entity: weather.forecast_maison   # [OPTIONAL] replace with your weather.*
 ```
 
-- **`type`** et **`entity`** : requis côté Lovelace / carte (`entity` = votre `input_select`).
-- **`weather_entity`** : en option vous choisissez **quelle** entité `weather.*` alimente le bandeau ; l’exemple ci-dessus n’est qu’une valeur d’instance.
-- **Lever / coucher** : par défaut **`sun.sun`** (attributs `next_rising` / `next_setting`, affichés dans le **fuseau horaire de Home Assistant**). Pour une autre entité, la carte affiche son **`state`** ; surcharge possible avec `weather_sunrise_entity` et `weather_sunset_entity`.
+- **`type`** and **`entity`**: required on the Lovelace / card side (`entity` = your `input_select`).
+- **`weather_entity`**: optionally, you choose **which** `weather.*` entity feeds the strip; the example above is just an instance value.
+- **Sunrise / sunset**: by default **`sun.sun`** (attributes `next_rising` / `next_setting`, displayed in **Home Assistant's time zone**). For any other entity, the card displays its **`state`**; can be overridden with `weather_sunrise_entity` and `weather_sunset_entity`.
 
 ---
 
-## (B) USAGE en MODE automatique
+## (B) USAGE in automatic MODE
 
 > [!IMPORTANT]
-> Prérequis: avoir déjà une entité active pour sélectionner la saison ou le mode. Soit l'intégration par défaut SEASON de Home Assistant (Paramètres>Appareils et Services>Ajouter une intégration), soit votre propre helper `input_select` que vous utilisez habituellement pour activer ou désactiver votre chauffage, climatisation ou autre.
+> Prerequisite: already have an active entity to select the season or mode. Either Home Assistant's default **Season** integration (Settings > Devices and Services > Add Integration), or your own `input_select` helper that you typically use to turn your heating, AC or other systems on/off.
 
-Comportement de ce mode :
-- rail **non interactif** (le curseur suit l’état du capteur),
+Behavior of this mode:
+- rail is **non-interactive** (the slider follows the sensor's state),
 
-Si c'est SEASON de Home Assistant qui est utilisé comme dans l'exemple ci-après, alors :
-- 4 positions fixes : `winter` (gauche), `spring`, `summer`, `autumn` (droite),
-- couleur du rail basée sur la saison : `winter` et `summer` colorées, `spring` / `autumn` grisées,
-- libellé actif localisé avec emoji (ex. ❄️ / 🍃 / ☀️ / 🍂).
+If Home Assistant's **Season** integration is used as in the example below:
+- 4 fixed positions: `winter` (left), `spring`, `summer`, `autumn` (right),
+- rail color based on the season: `winter` and `summer` colored, `spring` / `autumn` grayed,
+- active label localized with an emoji (e.g. ❄️ / 🍃 / ☀️ / 🍂).
 
-### Configuration du mode B
+### Mode B configuration
 
-La carte affiche les **libellés tels qu’ils sont définis** dans le helper (ordre YAML = positions gauche → droite sur le rail).
+The card displays **labels exactly as defined** in the helper (YAML order = positions left → right on the rail).
 
-Exemple:
+Example:
 ```yaml
 type: custom:season-card
 entity: sensor.season
-weather_entity: weather.forecast_maison   # [OPTION] remplacer par votre weather.*
+weather_entity: weather.forecast_maison   # [OPTIONAL] replace with your weather.*
 ```
 
-Après modification du YAML : vérifier la configuration Home Assistant, puis recharger les **entités d’entrée** (ou redémarrer si votre mode d’édition l’exige).
+After editing the YAML: check the Home Assistant configuration, then reload **input entities** (or restart if your editing mode requires it).
 
 ---
 
 ## Installation via HACS
 
-1. **HACS** → menu **⋮** → **Dépôts personnalisés** → URL `https://github.com/ebozonne/season-card`, catégorie **Dashboard** (plugin Lovelace).
-2. **HACS** → **Frontend** (ou équivalent) → **Season Card** → **Télécharger**.
-3. Ajoutez la carte au tableau (`Ajouter une carte` → **Season Card**, ou YAML `type: custom:season-card`).
+1. **HACS** → **⋮** menu → **Custom repositories** → URL `https://github.com/ebozonne/season-card`, category **Dashboard** (Lovelace plugin).
+2. **HACS** → **Frontend** (or equivalent) → **Season Card** → **Download**.
+3. Add the card to your dashboard (`Add card` → **Season Card**, or YAML `type: custom:season-card`).
 
 ---
 
-## Installation manuelle (sans HACS)
+## Manual installation (without HACS)
 
-1. Copier **le contenu** du dossier **`dist/`** de ce dépôt vers **`config/www/season-card/`** (à la racine de ce dossier : `season-card.js`, `temperature-colorscale.json`, dossiers `season-icons/`, `meteocons-mono-icons/`, `meteocons-fill-icons/`, `season-motifs/`, etc.).
-2. **Paramètres** → **Tableaux de bord** → **Ressources** → **Ajouter une ressource** : URL **`/local/season-card/season-card.js`**, type **JavaScript module**. En cas de cache navigateur tenace, vous pouvez ajouter un paramètre de version dans l’URL (`?v=…`).
+1. Copy **the contents** of this repository's **`dist/`** folder into **`config/www/season-card/`** (at the root of that folder: `season-card.js`, `temperature-colorscale.json`, folders `season-icons/`, `meteocons-mono-icons/`, `meteocons-fill-icons/`, `season-motifs/`, etc.).
+2. **Settings** → **Dashboards** → **Resources** → **Add resource**: URL **`/local/season-card/season-card.js`**, type **JavaScript module**. If the browser cache is stubborn, you can append a version parameter to the URL (`?v=…`).
 
 ---
 
-## Choisir un pack d’icônes météo
+## Choosing a weather icon pack
 
-La carte est livrée avec **trois packs** d’icônes condition (mêmes 15 conditions, même rendu). Réglage via la clé **`weather_icon_set`** :
+The card ships with **three** condition icon packs (same 15 conditions, same rendering). Set via the **`weather_icon_set`** key:
 
 
-| Valeur                  | Style                                                            | Couleur                                              |
-| ----------------------- | ---------------------------------------------------------------- | ---------------------------------------------------- |
-| `season` *(par défaut)* | Animations maison, monochromes                                   | Pilotée par `weather_color` (suit le thème)          |
-| `meteocons-mono`        | [Meteocons](https://meteocons.com/) monochromes animées          | Pilotée par `weather_color` (suit le thème)          |
-| `meteocons-fill`        | [Meteocons](https://meteocons.com/icons/?style=fill) en couleurs | Couleurs gradient d’origine (indépendantes du thème) |
+| Value                     | Style                                                              | Color                                                  |
+| ------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------ |
+| `season` *(default)*      | In-house animations, monochrome                                    | Driven by `weather_color` (follows the theme)          |
+| `meteocons-mono`          | [Meteocons](https://meteocons.com/) animated monochromes           | Driven by `weather_color` (follows the theme)          |
+| `meteocons-fill`          | [Meteocons](https://meteocons.com/icons/?style=fill) in colors     | Original gradient colors (theme-independent)           |
 
 
 ```yaml
 type: custom:season-card
 entity: input_select.season
 weather_entity: weather.forecast_maison
-weather_icon_set: meteocons-fill   # ou: season | meteocons-mono
+weather_icon_set: meteocons-fill   # or: season | meteocons-mono
 ```
 
-> Si `weather_icon_set` n’est pas précisé, le pack `season` est utilisé.
+> If `weather_icon_set` isn't specified, the `season` pack is used.
 
 ---
 
-## Variantes
-### slider MODE seul (sans météo)
-uniquement le sélecteur saison :
+## Variants
+### MODE slider only (no weather)
+season selector only:
 ```yaml
 type: custom:season-card
 entity: input_select.season
 ```
 
-### météo seule (sans sélecteur)
-uniquement le bandeau météo, sans `entity` :
+### weather only (no selector)
+weather strip only, without `entity`:
 ```yaml
 type: custom:season-card
 weather_entity: weather.forecast_maison
 ```
 
-### MODE auto seul
-uniquement le MODE défini par votre entité, p. ex. le capteur (ex. `sensor.season`):
+### Auto MODE only
+only the MODE defined by your entity, e.g. a sensor (such as `sensor.season`):
 ```yaml
 type: custom:season-card
 entity: sensor.season
@@ -158,20 +160,20 @@ entity: sensor.season
 
 ---
 
-## Options démo (hors usage courant)
+## Demo options (not for everyday use)
 
-À utiliser **ponctuellement** pour tester l’UI, puis retirer ou remettre aux valeurs par défaut.
+Use **occasionally** to test the UI, then remove or reset to defaults.
 
 
-| Paramètre                     | Défaut     | Exemple  | Rôle                                                                                                                            |
+| Parameter                     | Default    | Example  | Role                                                                                                                            |
 | ----------------------------- | ---------- | -------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `external_temp`               | *(absent)* | `32`     | Force une température **°C** (motifs, ambiance, ressenti, **T** affichée) sans modifier la météo réelle.                        |
-| `weather_rain_umbrella_force` | `false`    | `true`   | Affiche le bloc **☂️** comme s’il y avait une alerte, **sans** appeler les prévisions.                                          |
-| `season_force`                | *(absent)* | `autumn` | **Mode `sensor.season` uniquement** : force l’affichage d’une saison (`winter`, `spring`, `summer`, `autumn`) pour test visuel. |
+| `external_temp`               | *(absent)* | `32`     | Forces a temperature in **°C** (patterns, ambiance, feels-like, displayed **T**) without changing the actual weather.           |
+| `weather_rain_umbrella_force` | `false`    | `true`   | Displays the **☂️** block as if there were an alert, **without** calling forecasts.                                            |
+| `season_force`                | *(absent)* | `autumn` | **`sensor.season` mode only**: forces the display of a season (`winter`, `spring`, `summer`, `autumn`) for visual testing.      |
 
 
 ---
 
-## Licence
+## License
 
-Voir le fichier [`LICENSE`](LICENSE) (MIT).
+See the [`LICENSE`](LICENSE) file (MIT).
