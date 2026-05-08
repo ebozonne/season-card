@@ -1,7 +1,6 @@
 **English** · [Français](README.fr.md)
 
 [![HACS Custom](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://hacs.xyz/)
-[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=ebozonne&repository=season-card&category=plugin)
 
 # Season Card — seasons + compact weather card (Lovelace)
 

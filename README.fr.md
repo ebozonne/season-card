@@ -1,7 +1,6 @@
 [English](README.md) · **Français**
 
 [![HACS Custom](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://hacs.xyz/)
-[![Ouvrir dans HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=ebozonne&repository=season-card&category=plugin)
 
 # Season Card — carte saisons + météo compacte (Lovelace)
 
