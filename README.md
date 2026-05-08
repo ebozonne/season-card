@@ -1,12 +1,13 @@
 **English** · [Français](README.fr.md)
 
-![HACS](https://img.shields.io/badge/HACS-Custom-orange.svg)
+[![HACS Custom](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://hacs.xyz/)
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=ebozonne&repository=season-card&category=plugin)
 
 # Season Card — seasons + compact weather card (Lovelace)
 
 > [!NOTE]
 > Why this isn't yet another weather card…  
-> First and foremost it's a single **MODE** selector (to enable or disable heating, AC, etc.) — either [manual](#a-usage-as-manual-mode-selector) or [automatic](#b-usage-in-automatic-mode) if you use Home Assistant's native **Season** integration.
+> First and foremost it's a single **MODE** selector (to enable or disable heating, AC, etc.) — either [manual](#a-detailed-usage--manual-mode-selector) or [automatic](#b-detailed-usage--automatic-mode) if you use Home Assistant's native **Season** integration.
 
 A Lovelace card for Home Assistant: **selector mode** (`input_select`) or **sensor mode** (`sensor.season`), with a **weather strip** (feels-like temperature, condition icon, 24 h rainfall, sunrise/sunset) and **ambiance** (gradient + patterns) tied to the outside temperature.
 
@@ -27,16 +28,64 @@ A Lovelace card for Home Assistant: **selector mode** (`input_select`) or **sens
 
 ![Light and dark themes](docs/readme/QuatreSaisons_themes.jpg)
 
-For the card **with weather**, the **standard** configuration takes **three** YAML lines: `type`, `entity`, `weather_entity`. The latter is **your** entity (`weather.*`) — the example `weather.forecast_maison` is just from a reference instance.
+---
 
-Without `weather_entity`, the weather strip stays hidden (the season slider works on its own). Forecasts for the **☂️** depend on the weather entity (`weather.get_forecasts` or equivalent); otherwise the rain block may stay empty.
+## Installation
+
+### Via HACS (recommended)
+
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=ebozonne&repository=season-card&category=plugin)
+
+1. Click the button above — it opens your Home Assistant instance directly on the HACS dialog with this repository pre-filled.  
+   *(Manual fallback: HACS → ⋮ menu → **Custom repositories** → URL `https://github.com/ebozonne/season-card`, category **Dashboard**.)*
+2. In HACS, click **Download** on the **Season Card** entry.
+3. Add the card to your dashboard (`Add card` → **Season Card**, or YAML `type: custom:season-card`).
+
+### Manual (without HACS)
+
+1. Copy **the contents** of this repository's **`dist/`** folder into **`config/www/season-card/`** (at the root of that folder: `season-card.js`, `temperature-colorscale.json`, folders `season-icons/`, `meteocons-mono-icons/`, `meteocons-fill-icons/`, `season-motifs/`, etc.).
+2. **Settings** → **Dashboards** → **Resources** → **Add resource**: URL **`/local/season-card/season-card.js`**, type **JavaScript module**. If the browser cache is stubborn, you can append a version parameter to the URL (`?v=…`).
+
+---
+
+## Quick start
+
+The **standard** configuration takes **three** YAML lines: `type`, `entity`, `weather_entity`.
+
+```yaml
+type: custom:season-card
+entity: input_select.season              # or sensor.season for auto mode
+weather_entity: weather.forecast_maison  # optional — replace with your weather.*
+```
 
 > [!IMPORTANT]
 > The **`weather`** domain is not a "package to install" for the card: it's the entity type you point to in **`weather_entity`**.
 
+Common minimal variants:
+
+```yaml
+# Slider only (no weather strip)
+type: custom:season-card
+entity: input_select.season
+```
+
+```yaml
+# Weather strip only (no slider)
+type: custom:season-card
+weather_entity: weather.forecast_maison
+```
+
+```yaml
+# Auto mode only (rail driven by sensor)
+type: custom:season-card
+entity: sensor.season
+```
+
+If your `entity` doesn't exist yet, jump to the matching section below: [(A) manual selector](#a-detailed-usage--manual-mode-selector) or [(B) automatic mode](#b-detailed-usage--automatic-mode).
+
 ---
 
-## (A) USAGE as manual MODE selector
+## (A) Detailed usage — manual MODE selector
 
 > [!IMPORTANT]
 > Prerequisite: an **`input_select`** helper with **exactly the options** you'll use everywhere (automations, scripts, etc.)
@@ -54,7 +103,6 @@ input_select:
       - "🍂 MID-SEASON"
       - "☀️ SUMMER"
 ```
-### Mode A configuration
 
 The card displays **labels exactly as defined** in the helper (YAML order = positions left → right on the rail). Rail colors rely on keywords in the option text (e.g. `WINTER`, `MID` / mid-season, `SUMMER`). Weather is optional.
 
@@ -65,29 +113,26 @@ weather_entity: weather.forecast_maison   # [OPTIONAL] replace with your weather
 ```
 
 - **`type`** and **`entity`**: required on the Lovelace / card side (`entity` = your `input_select`).
-- **`weather_entity`**: optionally, you choose **which** `weather.*` entity feeds the strip; the example above is just an instance value.
+- **`weather_entity`**: optionally, you choose **which** `weather.*` entity feeds the strip; the example above is just an instance value. Without it, the weather strip stays hidden.
 - **Sunrise / sunset**: by default **`sun.sun`** (attributes `next_rising` / `next_setting`, displayed in **Home Assistant's time zone**). For any other entity, the card displays its **`state`**; can be overridden with `weather_sunrise_entity` and `weather_sunset_entity`.
 
 ---
 
-## (B) USAGE in automatic MODE
+## (B) Detailed usage — automatic MODE
 
 > [!IMPORTANT]
-> Prerequisite: already have an active entity to select the season or mode. Either Home Assistant's default **Season** integration (Settings > Devices and Services > Add Integration), or your own `input_select` helper that you typically use to turn your heating, AC or other systems on/off.
+> Prerequisite: already have an active entity to select the season or mode. Either Home Assistant's default **Season** integration (Settings → Devices and Services → Add Integration), or your own `input_select` helper that you typically use to turn your heating, AC or other systems on/off.
 
 Behavior of this mode:
-- rail is **non-interactive** (the slider follows the sensor's state),
+- rail is **non-interactive** (the slider follows the sensor's state).
 
 If Home Assistant's **Season** integration is used as in the example below:
 - 4 fixed positions: `winter` (left), `spring`, `summer`, `autumn` (right),
 - rail color based on the season: `winter` and `summer` colored, `spring` / `autumn` grayed,
 - active label localized with an emoji (e.g. ❄️ / 🍃 / ☀️ / 🍂).
 
-### Mode B configuration
-
 The card displays **labels exactly as defined** in the helper (YAML order = positions left → right on the rail).
 
-Example:
 ```yaml
 type: custom:season-card
 entity: sensor.season
@@ -95,21 +140,6 @@ weather_entity: weather.forecast_maison   # [OPTIONAL] replace with your weather
 ```
 
 After editing the YAML: check the Home Assistant configuration, then reload **input entities** (or restart if your editing mode requires it).
-
----
-
-## Installation via HACS
-
-1. **HACS** → **⋮** menu → **Custom repositories** → URL `https://github.com/ebozonne/season-card`, category **Dashboard** (Lovelace plugin).
-2. **HACS** → **Frontend** (or equivalent) → **Season Card** → **Download**.
-3. Add the card to your dashboard (`Add card` → **Season Card**, or YAML `type: custom:season-card`).
-
----
-
-## Manual installation (without HACS)
-
-1. Copy **the contents** of this repository's **`dist/`** folder into **`config/www/season-card/`** (at the root of that folder: `season-card.js`, `temperature-colorscale.json`, folders `season-icons/`, `meteocons-mono-icons/`, `meteocons-fill-icons/`, `season-motifs/`, etc.).
-2. **Settings** → **Dashboards** → **Resources** → **Add resource**: URL **`/local/season-card/season-card.js`**, type **JavaScript module**. If the browser cache is stubborn, you can append a version parameter to the URL (`?v=…`).
 
 ---
 
@@ -133,30 +163,6 @@ weather_icon_set: meteocons-fill   # or: season | meteocons-mono
 ```
 
 > If `weather_icon_set` isn't specified, the `season` pack is used.
-
----
-
-## Variants
-### MODE slider only (no weather)
-season selector only:
-```yaml
-type: custom:season-card
-entity: input_select.season
-```
-
-### weather only (no selector)
-weather strip only, without `entity`:
-```yaml
-type: custom:season-card
-weather_entity: weather.forecast_maison
-```
-
-### Auto MODE only
-only the MODE defined by your entity, e.g. a sensor (such as `sensor.season`):
-```yaml
-type: custom:season-card
-entity: sensor.season
-```
 
 ---
 
